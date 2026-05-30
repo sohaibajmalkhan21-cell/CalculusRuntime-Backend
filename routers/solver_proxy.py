@@ -1,49 +1,46 @@
-"""
-Solver proxy + history router.
-Records each solve call in solver_history for logged-in users.
-The actual solving is done by the hosted Streamlit app; this endpoint
-just logs usage and can optionally forward to a local solver API.
-"""
+"""Solver usage logging routes."""
 
-import os
-from typing import Optional
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from starlette.routing import Route
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 import db
-from auth_utils import get_optional_user_id
-
-router = APIRouter()
-
-SOLVER_API_URL = os.getenv("SOLVER_API_URL", "")  # e.g. http://localhost:8001
+from auth_utils import require_user, err
 
 
-class SolverLogBody(BaseModel):
-    expression: Optional[str] = None
-    result: Optional[str] = None
+async def log_use(request: Request):
+    """Frontend calls this after each solver interaction."""
+    user_id = require_user(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
 
+    expression = body.get("expression") or None
+    result = body.get("result") or None
 
-@router.post("/log")
-async def log_solver_use(
-    body: SolverLogBody,
-    user_id: Optional[int] = Depends(get_optional_user_id),
-):
-    """Called by the frontend after each solver interaction to record history."""
     if user_id:
         await db.execute(
             "INSERT INTO solver_history (user_id, expression, result) VALUES (?, ?, ?)",
-            (user_id, body.expression, body.result),
+            (user_id, expression, result),
         )
-    return {"ok": True}
+    return JSONResponse({"ok": True})
 
 
-@router.get("/history")
-async def solver_history(user_id: int = Depends(get_optional_user_id)):
+async def get_history(request: Request):
+    user_id = require_user(request)
     if not user_id:
-        return []
+        return JSONResponse([])
+
     rows = await db.fetchall(
         "SELECT expression, result, created_at FROM solver_history "
         "WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
         (user_id,),
     )
-    return rows
+    return JSONResponse(rows)
+
+
+routes = [
+    Route("/log", log_use, methods=["POST"]),
+    Route("/history", get_history, methods=["GET"]),
+]
