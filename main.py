@@ -23,7 +23,7 @@ if _env_file.exists():
             _k, _, _v = _line.partition("=")
             os.environ.setdefault(_k.strip(), _v.strip())
 
-from db import init_db
+from storage import init_storage
 from routers.auth import routes as auth_routes
 from routers.progress import routes as progress_routes
 from routers.bookmarks import routes as bookmark_routes
@@ -181,7 +181,7 @@ async def docs(request: Request):
 
 
 async def on_startup():
-    await init_db()
+    await init_storage()
 
 
 # ── App ───────────────────────────────────────────────────────────────────────

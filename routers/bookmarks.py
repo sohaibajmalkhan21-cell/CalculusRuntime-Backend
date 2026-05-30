@@ -4,7 +4,7 @@ from starlette.routing import Route
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-import db
+import storage
 from auth_utils import require_user, err
 
 
@@ -13,22 +13,7 @@ async def list_bookmarks(request: Request):
     if not user_id:
         return err(401, "Not authenticated.")
 
-    rows = await db.fetchall(
-        "SELECT bm_id, title, path, added_at FROM bookmarks "
-        "WHERE user_id = ? ORDER BY added_at DESC",
-        (user_id,),
-    )
-    return JSONResponse(
-        [
-            {
-                "id": r["bm_id"],
-                "title": r["title"],
-                "path": r["path"],
-                "addedAt": r["added_at"],
-            }
-            for r in rows
-        ]
-    )
+    return JSONResponse(await storage.list_bookmarks(user_id))
 
 
 async def add_bookmark(request: Request):
@@ -47,11 +32,7 @@ async def add_bookmark(request: Request):
     if not bm_id or not title or not path:
         return err(400, "id, title, and path are required.")
 
-    await db.execute(
-        "INSERT INTO bookmarks (user_id, bm_id, title, path) VALUES (?, ?, ?, ?) "
-        "ON CONFLICT(user_id, bm_id) DO NOTHING",
-        (user_id, bm_id, title, path),
-    )
+    await storage.add_bookmark(user_id, bm_id, title, path)
     return JSONResponse({"ok": True}, status_code=201)
 
 
@@ -61,10 +42,7 @@ async def remove_bookmark(request: Request):
         return err(401, "Not authenticated.")
 
     bm_id = request.path_params.get("bm_id", "")
-    await db.execute(
-        "DELETE FROM bookmarks WHERE user_id = ? AND bm_id = ?",
-        (user_id, bm_id),
-    )
+    await storage.remove_bookmark(user_id, bm_id)
     return JSONResponse({"ok": True})
 
 

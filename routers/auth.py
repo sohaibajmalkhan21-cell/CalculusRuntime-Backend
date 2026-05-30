@@ -4,7 +4,7 @@ from starlette.routing import Route
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-import db
+import storage
 from auth_utils import hash_password, verify_password, create_token, require_user, err
 
 
@@ -23,15 +23,12 @@ async def signup(request: Request):
     if len(password) < 6:
         return err(400, "Password must be at least 6 characters.")
 
-    existing = await db.fetchone("SELECT id FROM users WHERE username = ?", (username,))
+    existing = await storage.get_user_by_username(username)
     if existing:
         return err(409, "Username already taken.")
 
     hashed = hash_password(password)
-    user_id = await db.execute(
-        "INSERT INTO users (username, email, hashed_pw) VALUES (?, ?, ?)",
-        (username, email, hashed),
-    )
+    user_id = await storage.create_user(username, email, hashed)
     token = create_token(user_id)
     return JSONResponse(
         {
@@ -52,9 +49,7 @@ async def login(request: Request):
     username = (body.get("username") or "").strip()
     password = body.get("password") or ""
 
-    row = await db.fetchone(
-        "SELECT id, username, hashed_pw FROM users WHERE username = ?", (username,)
-    )
+    row = await storage.get_user_by_username(username)
     if not row or not verify_password(password, row["hashed_pw"]):
         return err(401, "Incorrect username or password.")
 
@@ -72,9 +67,7 @@ async def me(request: Request):
     user_id = require_user(request)
     if not user_id:
         return err(401, "Not authenticated.")
-    row = await db.fetchone(
-        "SELECT id, username, email, created_at FROM users WHERE id = ?", (user_id,)
-    )
+    row = await storage.get_user_profile(user_id)
     if not row:
         return err(404, "User not found.")
     return JSONResponse(row)

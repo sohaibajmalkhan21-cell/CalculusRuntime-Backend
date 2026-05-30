@@ -4,7 +4,7 @@ from starlette.routing import Route
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-import db
+import storage
 from auth_utils import require_user, err
 
 
@@ -19,11 +19,7 @@ async def log_use(request: Request):
     expression = body.get("expression") or None
     result = body.get("result") or None
 
-    if user_id:
-        await db.execute(
-            "INSERT INTO solver_history (user_id, expression, result) VALUES (?, ?, ?)",
-            (user_id, expression, result),
-        )
+    await storage.log_solver_use(user_id, expression, result)
     return JSONResponse({"ok": True})
 
 
@@ -32,12 +28,7 @@ async def get_history(request: Request):
     if not user_id:
         return JSONResponse([])
 
-    rows = await db.fetchall(
-        "SELECT expression, result, created_at FROM solver_history "
-        "WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
-        (user_id,),
-    )
-    return JSONResponse(rows)
+    return JSONResponse(await storage.list_solver_history(user_id))
 
 
 routes = [
