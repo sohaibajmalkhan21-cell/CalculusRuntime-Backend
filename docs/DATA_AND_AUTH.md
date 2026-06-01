@@ -1,0 +1,84 @@
+# Data and Authentication
+
+## Table of Contents
+
+- [Storage Backends](#storage-backends)
+- [SQLite Schema](#sqlite-schema)
+- [Supabase Schema](#supabase-schema)
+- [Authentication Flow](#authentication-flow)
+- [Authorization Rules](#authorization-rules)
+- [Data Retention Notes](#data-retention-notes)
+- [Security Considerations](#security-considerations)
+
+## Storage Backends
+
+The backend supports two storage modes:
+
+| Mode | Activation | Code path |
+| --- | --- | --- |
+| SQLite | Default | `db.py` through `storage.py` |
+| Supabase | `DB_BACKEND=supabase`, `DATABASE_BACKEND=supabase`, `PROGRESS_DB=supabase`, or Supabase URL/key present | Supabase client through `storage.py` |
+
+SQLite creates the schema on startup. Supabase requires applying `supabase_schema.sql` before starting the service.
+
+## SQLite Schema
+
+Defined in `db.py`.
+
+| Table | Key fields | Purpose |
+| --- | --- | --- |
+| `users` | `id`, `username`, `email`, `hashed_pw`, `created_at` | Account records |
+| `sections` | `user_id`, `section_id`, `completed`, `completed_at` | Completed curriculum sections |
+| `bookmarks` | `user_id`, `bm_id`, `title`, `path`, `added_at` | Saved pages/tools |
+| `quiz_scores` | `user_id`, `quiz_id`, `score`, `total`, `taken_at` | Best quiz score per user and quiz |
+| `solver_history` | `user_id`, `expression`, `result`, `created_at` | Solver usage history |
+
+Foreign keys cascade deletes from `users` to dependent rows.
+
+## Supabase Schema
+
+`supabase_schema.sql` mirrors the SQLite tables using `bigint` identities and timestamp columns. It also creates indexes on user-owned tables.
+
+The schema disables row-level security on the custom app tables because this backend uses its own JWT authentication and performs server-side Supabase writes. If RLS is re-enabled, policies must be designed for backend service-role access.
+
+## Authentication Flow
+
+1. `POST /api/auth/signup` validates username and password length.
+2. Passwords are hashed with bcrypt in `auth_utils.hash_password`.
+3. The user is inserted through `storage.create_user`.
+4. The backend signs a JWT with `HS256`.
+5. The token payload contains:
+   - `sub`: user id as a string
+   - `exp`: expiration timestamp
+6. The frontend stores the token in localStorage.
+7. Protected requests send `Authorization: Bearer <token>`.
+8. `auth_utils.require_user` decodes the token and returns the user id.
+
+## Authorization Rules
+
+| Resource | Rule |
+| --- | --- |
+| `/api/auth/signup` | Public |
+| `/api/auth/login` | Public |
+| `/api/auth/me` | Requires valid bearer token |
+| Progress | User can read/write only their own rows |
+| Bookmarks | User can read/write only their own rows |
+| Quiz scores | User can read/write only their own rows |
+| Solver log | Optional auth; stores only when user is authenticated |
+| Solver history | Returns user history when authenticated; returns `[]` otherwise |
+
+## Data Retention Notes
+
+- Solver history is read with `LIMIT 50`, but old rows are not automatically deleted.
+- Quiz scores are upserted by user and quiz id, keeping the best score.
+- Bookmarks are unique by user and bookmark id.
+- Completed sections are unique by user and section id.
+
+## Security Considerations
+
+- Set a strong `SECRET_KEY` outside local development.
+- Keep Supabase service-role keys server-side only.
+- Treat the SQLite database file as sensitive data.
+- Avoid logging bearer tokens.
+- Validate numeric quiz inputs before casting.
+- Consider rate limiting auth endpoints before public production use.
