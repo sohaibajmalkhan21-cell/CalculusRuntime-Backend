@@ -1,96 +1,78 @@
 # Backend Documentation
 
-This folder documents the `backend/` subproject only.
+The backend is the CalcVoyager persistence API. It owns user accounts, JWT authentication, learning progress, bookmarks, quiz scores, and solver usage history.
 
-## Purpose
+## Table of Contents
 
-The backend is the CalcVoyager persistence API. It handles:
+- [Documentation Map](#documentation-map)
+- [Runtime Summary](#runtime-summary)
+- [Source Map](#source-map)
+- [API Areas](#api-areas)
+- [Configuration](#configuration)
+- [Ownership Boundary](#ownership-boundary)
 
-- User signup, login, and current-user lookup.
-- Learning progress.
-- Bookmarks.
-- Quiz scores.
-- Solver usage logging.
+## Documentation Map
 
-## Stack
-
-- Starlette
-- Uvicorn
-- SQLite through Python stdlib `sqlite3`
-- PyJWT
-- bcrypt
-
-## Main Folders
-
-| Path | Purpose |
+| File | Purpose |
 | --- | --- |
-| `main.py` | Starlette app, CORS, startup, embedded API docs |
-| `db.py` | SQLite schema and async wrappers around blocking DB calls |
-| `auth_utils.py` | Password hashing, JWT creation/verification, auth helpers |
-| `routers/` | Route handlers for auth, progress, bookmarks, quiz, solver history |
-| `calcvoyager.db` | Local SQLite database, generated/runtime data |
+| `README.md` | Backend overview and navigation |
+| `ARCHITECTURE.md` | Starlette app structure, routing, storage abstraction |
+| `API_REFERENCE.md` | Backend endpoint contracts |
+| `DATA_AND_AUTH.md` | Database schema, Supabase mapping, JWT/password flow |
+| `DEVELOPMENT_WORKFLOW.md` | Setup, commands, validation, deployment, troubleshooting |
 
-## API Surface
+## Runtime Summary
 
-| Area | Routes |
+| Item | Current implementation |
 | --- | --- |
-| Health | `GET /api/health` |
-| Auth | `POST /api/auth/signup`, `POST /api/auth/login`, `GET /api/auth/me` |
-| Progress | `GET /api/progress/`, `POST /api/progress/section/complete`, `DELETE /api/progress/section/{section_id}` |
-| Bookmarks | `GET /api/bookmarks/`, `POST /api/bookmarks/`, `DELETE /api/bookmarks/{bm_id}` |
-| Quiz | `GET /api/quiz/`, `POST /api/quiz/` |
-| Solver history | `POST /api/solver/log`, `GET /api/solver/history` |
+| Framework | Starlette |
+| Server | Uvicorn |
+| Persistence | SQLite by default; Supabase when configured |
+| Auth | bcrypt password hashing + PyJWT bearer tokens |
+| Schema owner | `db.py` for SQLite, `supabase_schema.sql` for Supabase |
+| API docs | Custom HTML at `/docs` |
+| Health check | `GET /api/health` |
 
-## Local Commands
+## Source Map
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8002
-```
+| Path | Responsibility |
+| --- | --- |
+| `main.py` | App creation, CORS, routes, startup, HTML docs |
+| `auth_utils.py` | Password hashing, JWT creation/decoding, request auth helpers |
+| `db.py` | SQLite schema and async wrappers around blocking `sqlite3` calls |
+| `storage.py` | Storage abstraction for SQLite and Supabase |
+| `progress_store.py` | Compatibility exports for progress routes |
+| `routers/` | Route handlers grouped by API area |
+| `supabase_schema.sql` | Supabase table definitions and indexes |
+| `.env.example` | Local and production environment variable reference |
 
-The frontend currently defaults to `http://127.0.0.1:8002`, so port `8002` is the safest local backend port unless the frontend environment is changed.
+## API Areas
 
-## Environment Variables
+| Area | Base path | Purpose |
+| --- | --- | --- |
+| System | `/`, `/docs`, `/api/health` | Service metadata, docs, health |
+| Auth | `/api/auth` | Signup, login, current user |
+| Progress | `/api/progress` | Completed sections and progress snapshot |
+| Bookmarks | `/api/bookmarks` | User bookmark list and mutations |
+| Quiz | `/api/quiz` | Quiz score list and best-score updates |
+| Solver | `/api/solver` | Solver usage log and history |
+
+## Configuration
+
+Backend environment variables are documented in `.env.example`:
 
 ```env
 SECRET_KEY=replace-with-a-long-random-string
 TOKEN_EXPIRE_MINUTES=10080
 DB_PATH=calcvoyager.db
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+PROGRESS_DB=supabase
+SUPABASE_URL=https://xyzcompany.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=replace-with-your-backend-only-service-role-or-secret-key
+ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-## Security Notes
+SQLite is used unless Supabase is enabled through environment variables.
 
-- `SECRET_KEY` must be set before real deployment.
-- The current code has a development fallback secret. That is acceptable only for local prototypes.
-- CORS should be narrowed for production.
-- JWTs are bearer tokens; frontend token storage choices affect XSS risk.
+## Ownership Boundary
 
-## Data Model
-
-| Table | Purpose |
-| --- | --- |
-| `users` | User account records |
-| `sections` | Completed guide sections per user |
-| `bookmarks` | Saved guide/tool links per user |
-| `quiz_scores` | Best quiz scores per user |
-| `solver_history` | Solver usage history per user |
-
-## Current Technical Debt
-
-- Input validation is manual and inconsistent between routes.
-- Quiz score casting should return validation errors instead of possible 500s.
-- Frontend progress code does not yet use most backend progress APIs.
-- Local runtime artifacts such as DB files and Python cache files should stay out of version control.
-
-## Current Worktree Warning
-
-At the time these docs were added, the backend submodule had an interactive rebase/conflict state. Avoid resolving or aborting that rebase unless you intentionally own that Git operation.
-
-## Recommended Next Docs
-
-- `docs/API_CONTRACT.md`: exact request and response examples for every route.
-- `docs/ENVIRONMENT.md`: required local and production environment variables.
-- `docs/TESTING.md`: backend smoke and route test instructions.
+Backend docs own endpoint contracts, authentication behavior, data schema, storage behavior, and backend operations. Frontend route/component details belong in `../../frontend/docs/`; cross-service deployment guidance belongs in `../../docs/DEPLOYMENT.md`.
