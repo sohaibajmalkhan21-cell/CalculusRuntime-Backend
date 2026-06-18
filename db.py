@@ -1,3 +1,5 @@
+# db.py - Complete file with chat tables added
+
 """
 SQLite database — stdlib sqlite3 only, zero third-party DB driver.
 All blocking calls are wrapped in asyncio.to_thread so FastAPI stays async.
@@ -59,6 +61,33 @@ CREATE TABLE IF NOT EXISTS solver_history (
     result     TEXT,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
+
+-- CHAT TABLES
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_id  TEXT    UNIQUE NOT NULL,
+    title       TEXT    DEFAULT 'New Chat',
+    is_active   INTEGER NOT NULL DEFAULT 1,  -- 1 for active, 0 for deleted
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_id   TEXT    NOT NULL REFERENCES chat_sessions(session_id) ON DELETE CASCADE,
+    message_type TEXT    NOT NULL CHECK (message_type IN ('user', 'assistant', 'system')),
+    content      TEXT    NOT NULL,
+    metadata     TEXT    DEFAULT '{}',  -- JSON stored as TEXT in SQLite
+    created_at   INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user_session ON chat_messages(user_id, session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_active ON chat_sessions(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_updated ON chat_sessions(user_id, updated_at DESC);
 """
 
 
