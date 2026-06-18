@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalcVoyager Backend — Setup Guide</title>
+<style>
+  :root {
+    --purple-50: #EEEDFE; --purple-200: #AFA9EC; --purple-600: #534AB7; --purple-800: #3C3489;
+    --teal-50: #E1F5EE; --teal-200: #5DCAA5; --teal-600: #0F6E56; --teal-800: #085041;
+    --amber-50: #FAEEDA; --amber-200: #EF9F27; --amber-600: #854F0B;
+    --coral-50: #FAECE7; --coral-200: #F0997B; --coral-600: #993C1D;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-400: #888780; --gray-600: #5F5E5A; --gray-800: #444441;
+    --bg: #ffffff; --bg-2: #f7f6f3; --bg-3: #f1f0ec;
+    --text: #1a1a18; --text-2: #5f5e5a; --text-3: #888780;
+    --border: rgba(0,0,0,0.1); --border-2: rgba(0,0,0,0.18);
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg-2: #242422; --bg-3: #2c2c2a;
+      --text: #f0efe9; --text-2: #b4b2a9; --text-3: #888780;
+      --border: rgba(255,255,255,0.1); --border-2: rgba(255,255,255,0.18);
+      --purple-50: #26215C; --purple-200: #534AB7; --purple-600: #AFA9EC; --purple-800: #EEEDFE;
+      --teal-50: #04342C; --teal-200: #0F6E56; --teal-600: #5DCAA5; --teal-800: #E1F5EE;
+      --amber-50: #412402; --amber-200: #854F0B; --amber-600: #EF9F27;
+      --coral-50: #4A1B0C; --coral-200: #993C1D; --coral-600: #F0997B;
+      --gray-50: #2C2C2A; --gray-100: #444441; --gray-400: #888780; --gray-600: #B4B2A9; --gray-800: #D3D1C7;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-3);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 0.5px solid var(--border-2);
+  }
+  .header-icon {
+    width: 52px; height: 52px;
+    background: var(--purple-50);
+    border-radius: var(--radius-lg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    border: 0.5px solid var(--border);
+  }
+  .header h1 {
+    font-size: 22px; font-weight: 600; color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .header p {
+    font-size: 14px; color: var(--text-2);
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge-purple { background: var(--purple-50); color: var(--purple-800); }
+  .badge-teal   { background: var(--teal-50);   color: var(--teal-800); }
+  .badge-amber  { background: var(--amber-50);  color: var(--amber-600); }
+
+  /* ── Two-column layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* ── Sidebar ToC ── */
+  .toc {
+    position: sticky;
+    top: 1.5rem;
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1rem;
+  }
+  .toc-label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin-bottom: 0.75rem;
+  }
+  .toc a {
+    display: block;
+    font-size: 13px;
+    color: var(--text-2);
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 5px;
+    margin-bottom: 1px;
+    transition: background 0.12s;
+  }
+  .toc a:hover { background: var(--bg-2); color: var(--text); }
+  .toc a.sub { padding-left: 20px; font-size: 12px; color: var(--text-3); }
+
+  /* ── Sections ── */
+  .content { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .section {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--purple-50);
+    color: var(--purple-800);
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    flex: 1;
+  }
+  .section-body { padding: 1.25rem; }
+  .section-body p, .section-body li { font-size: 14px; line-height: 1.65; color: var(--text-2); }
+  .section-body p + p { margin-top: 0.65rem; }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: var(--bg-3);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 0.85rem 0;
+  }
+  .code-label {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px;
+    background: var(--bg-2);
+    border-bottom: 0.5px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-3);
+    letter-spacing: 0.03em;
+  }
+  .code-label .os-tabs { display: flex; gap: 2px; }
+  .code-label .os-tab {
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-3);
+    background: transparent;
+    border: none;
+    font-family: var(--font);
+  }
+  .code-label .os-tab.active {
+    background: var(--purple-50);
+    color: var(--purple-800);
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    color: var(--text);
+    white-space: pre;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--bg-3);
+    border: 0.5px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--text);
+  }
+
+  /* ── Env table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 0.75rem; }
+  th {
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+    padding: 6px 10px;
+    border-bottom: 0.5px solid var(--border-2);
+  }
+  td { padding: 8px 10px; border-bottom: 0.5px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child code { background: none; border: none; padding: 0; font-size: 12px; color: var(--purple-600); font-weight: 500; }
+  td:nth-child(2) { color: var(--text-2); }
+  td:last-child { color: var(--text-3); font-size: 12px; }
+  .required { color: var(--coral-600); font-size: 11px; font-weight: 600; }
+  .optional { color: var(--teal-600); font-size: 11px; font-weight: 500; }
+
+  /* ── Callouts ── */
+  .callout {
+    display: flex;
+    gap: 10px;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    margin: 0.85rem 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .callout-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+  .callout-warn  { background: var(--amber-50); border-left: 3px solid var(--amber-200); }
+  .callout-warn .callout-icon  { color: var(--amber-600); }
+  .callout-warn  .callout-body { color: var(--amber-600); }
+  .callout-info  { background: var(--purple-50); border-left: 3px solid var(--purple-200); }
+  .callout-info .callout-icon  { color: var(--purple-600); }
+  .callout-info  .callout-body { color: var(--purple-800); }
+  .callout-ok    { background: var(--teal-50);   border-left: 3px solid var(--teal-200); }
+  .callout-ok .callout-icon   { color: var(--teal-600); }
+  .callout-ok    .callout-body { color: var(--teal-800); }
+
+  /* ── Route table ── */
+  .route-list { display: flex; flex-direction: column; gap: 4px; margin-top: 0.75rem; }
+  .route-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    background: var(--bg-2);
+    font-size: 13px;
+  }
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    min-width: 46px;
+    text-align: center;
+  }
+  .method-get    { background: var(--teal-50);   color: var(--teal-800); }
+  .method-post   { background: var(--purple-50); color: var(--purple-800); }
+  .method-delete { background: var(--coral-50);  color: var(--coral-600); }
+  .route-path { font-family: var(--mono); font-size: 12px; color: var(--text); flex: 1; }
+  .route-desc { font-size: 12px; color: var(--text-3); }
+  .route-auth {
+    font-size: 10px; font-weight: 600; padding: 1px 6px;
+    border-radius: 3px; background: var(--amber-50); color: var(--amber-600);
+  }
+
+  /* ── Two-col env ── */
+  .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
+  .env-card {
+    background: var(--bg-2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+  }
+  .env-card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); margin-bottom: 0.5rem; }
+  .env-var { display: flex; flex-direction: column; margin-bottom: 0.5rem; }
+  .env-var:last-child { margin-bottom: 0; }
+  .env-var code { background: none; border: none; padding: 0; font-size: 12px; color: var(--purple-600); font-weight: 600; }
+  .env-var small { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+
+  /* ── Troubleshoot ── */
+  .trouble-item {
+    border-bottom: 0.5px solid var(--border);
+    padding: 0.85rem 0;
+  }
+  .trouble-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .trouble-symptom { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .trouble-cause { font-size: 12.5px; color: var(--text-3); margin-bottom: 4px; }
+  .trouble-fix { font-size: 12.5px; color: var(--teal-600); }
+
+  /* ── OS switcher logic ── */
+  .win { display: none; }
+  body.windows .win { display: block; }
+  body.windows .mac { display: none; }
+
+  @media (max-width: 660px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; }
+    .env-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-icon">⚡</div>
+    <div>
+      <h1>CalcVoyager Backend
+        <span class="badge badge-purple">Starlette</span>
+        <span class="badge badge-teal">Python 3</span>
+      </h1>
+      <p>Persistence API for user accounts, JWT auth, progress, bookmarks, quiz scores &amp; solver history. Runs on port 8002.</p>
+    </div>
+  </div>
+
+  <div style="margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+    <span style="font-size:13px; color:var(--text-3);">Shell:</span>
+    <button class="os-tab active" id="btn-mac" onclick="setOS('mac')" style="padding:4px 12px; border-radius:5px; border:0.5px solid var(--border); background:var(--bg); font-size:12px; cursor:pointer; color:var(--text-2);">macOS / Linux</button>
+    <button class="os-tab" id="btn-win" onclick="setOS('win')" style="padding:4px 12px; border-radius:5px; border:0.5px solid var(--border); background:var(--bg); font-size:12px; cursor:pointer; color:var(--text-2);">Windows (PowerShell)</button>
+  </div>
+
+  <div class="layout">
+
+    <nav class="toc" aria-label="Table of contents">
+      <div class="toc-label">Contents</div>
+      <a href="#prereqs">Prerequisites</a>
+      <a href="#clone">1 · Clone &amp; enter</a>
+      <a href="#venv">2 · Virtual environment</a>
+      <a href="#deps">3 · Install dependencies</a>
+      <a href="#env">4 · Configure .env</a>
+      <a href="#db">5 · Database</a>
+      <a class="sub" href="#db-sqlite">SQLite (default)</a>
+      <a class="sub" href="#db-supabase">Supabase</a>
+      <a href="#run">6 · Run the server</a>
+      <a href="#verify">7 · Verify</a>
+      <a href="#routes">API overview</a>
+      <a href="#deploy">Production notes</a>
+      <a href="#trouble">Troubleshooting</a>
+    </nav>
+
+    <main class="content">
+
+      <!-- Prerequisites -->
+      <section class="section" id="prereqs">
+        <div class="section-header">
+          <div class="step-num">0</div>
+          <h2>Prerequisites</h2>
+        </div>
+        <div class="section-body">
+          <p>You need <strong>Python 3.10+</strong> and <code>pip</code>. Confirm with:</p>
+          <div class="code-block">
+            <div class="code-label">terminal</div>
+            <pre>python --version
+pip --version</pre>
+          </div>
+          <p>If targeting Supabase, have your project URL and service-role key ready from the Supabase dashboard (Settings → API).</p>
+        </div>
+      </section>
+
+      <!-- Clone -->
+      <section class="section" id="clone">
+        <div class="section-header">
+          <div class="step-num">1</div>
+          <h2>Navigate to the backend directory</h2>
+        </div>
+        <div class="section-body">
+          <p>The backend lives at <code>CalculusRuntime/backend/</code> inside the repo.</p>
+          <div class="code-block">
+            <div class="code-label">terminal</div>
+            <pre>cd backend</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Venv -->
+      <section class="section" id="venv">
+        <div class="section-header">
+          <div class="step-num">2</div>
+          <h2>Create a virtual environment</h2>
+        </div>
+        <div class="section-body">
+          <div class="mac">
+            <div class="code-block">
+              <div class="code-label">bash</div>
+              <pre>python -m venv .venv
+source .venv/bin/activate</pre>
+            </div>
+          </div>
+          <div class="win">
+            <div class="code-block">
+              <div class="code-label">PowerShell</div>
+              <pre>python -m venv .venv
+.\.venv\Scripts\Activate.ps1</pre>
+            </div>
+          </div>
+          <p>Your prompt should now show <code>(.venv)</code> as a prefix.</p>
+          <div class="callout callout-warn">
+            <span class="callout-icon">⚠</span>
+            <span class="callout-body">On Windows, if execution policy blocks the activation script, run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> first.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deps -->
+      <section class="section" id="deps">
+        <div class="section-header">
+          <div class="step-num">3</div>
+          <h2>Install dependencies</h2>
+        </div>
+        <div class="section-body">
+          <div class="code-block">
+            <div class="code-label">terminal</div>
+            <pre>pip install -r requirements.txt</pre>
+          </div>
+          <p>This installs:</p>
+          <table>
+            <thead><tr><th>Package</th><th>Version</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>starlette</code></td><td>0.27.0</td><td>ASGI web framework</td></tr>
+              <tr><td><code>uvicorn[standard]</code></td><td>0.23.2</td><td>ASGI server</td></tr>
+              <tr><td><code>PyJWT</code></td><td>2.12.0</td><td>JWT creation &amp; decoding</td></tr>
+              <tr><td><code>bcrypt</code></td><td>4.1.3</td><td>Password hashing</td></tr>
+              <tr><td><code>python-multipart</code></td><td>0.0.6</td><td>Multipart form support</td></tr>
+              <tr><td><code>anyio</code></td><td>3.7.1</td><td>Async I/O primitives</td></tr>
+              <tr><td><code>supabase</code></td><td>2.30.1</td><td>Supabase client (optional)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Env -->
+      <section class="section" id="env">
+        <div class="section-header">
+          <div class="step-num">4</div>
+          <h2>Configure environment variables</h2>
+        </div>
+        <div class="section-body">
+          <p>Copy the example file and fill in your values:</p>
+          <div class="mac">
+            <div class="code-block">
+              <div class="code-label">bash</div>
+              <pre>cp .env.example .env</pre>
+            </div>
+          </div>
+          <div class="win">
+            <div class="code-block">
+              <div class="code-label">PowerShell</div>
+              <pre>Copy-Item .env.example .env</pre>
+            </div>
+          </div>
+
+          <div class="env-grid">
+            <div class="env-card">
+              <div class="env-card-title">Auth &amp; tokens</div>
+              <div class="env-var">
+                <code>SECRET_KEY</code>
+                <small>JWT signing secret. <strong>Replace before any non-local use.</strong> Default is a placeholder.</small>
+              </div>
+              <div class="env-var">
+                <code>TOKEN_EXPIRE_MINUTES</code>
+                <small>JWT lifetime. Default: 10080 (7 days).</small>
+              </div>
+            </div>
+            <div class="env-card">
+              <div class="env-card-title">Database (SQLite)</div>
+              <div class="env-var">
+                <code>DB_PATH</code>
+                <small>Path to the SQLite file. Default: <code>calcvoyager.db</code>.</small>
+              </div>
+            </div>
+            <div class="env-card">
+              <div class="env-card-title">CORS</div>
+              <div class="env-var">
+                <code>ALLOWED_ORIGINS</code>
+                <small>Comma-separated list of allowed origins. Default: <code>http://localhost:3000,http://127.0.0.1:3000</code></small>
+              </div>
+            </div>
+            <div class="env-card">
+              <div class="env-card-title">Database (Supabase)</div>
+              <div class="env-var">
+                <code>SUPABASE_URL</code>
+                <small>Your Supabase project URL.</small>
+              </div>
+              <div class="env-var">
+                <code>SUPABASE_SERVICE_ROLE_KEY</code>
+                <small>Backend-only service role key. Never expose to the client.</small>
+              </div>
+              <div class="env-var">
+                <code>DB_BACKEND</code>
+                <small>Set to <code>supabase</code> to activate. Any of <code>DB_BACKEND</code>, <code>DATABASE_BACKEND</code>, or <code>PROGRESS_DB</code> work.</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-warn" style="margin-top:1rem;">
+            <span class="callout-icon">⚠</span>
+            <span class="callout-body">The <code>.env</code> file is git-ignored. Never commit it. Never commit <code>calcvoyager.db</code> either.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- DB -->
+      <section class="section" id="db">
+        <div class="section-header">
+          <div class="step-num">5</div>
+          <h2>Set up the database</h2>
+        </div>
+        <div class="section-body">
+
+          <h3 id="db-sqlite" style="font-size:14px; font-weight:600; margin-bottom:6px; color:var(--text);">SQLite (default — no extra steps)</h3>
+          <p>On first startup <code>db.py</code> runs <code>CREATE TABLE IF NOT EXISTS</code> for all five tables automatically. No manual migration needed. The database file appears at the path set by <code>DB_PATH</code> (default: <code>calcvoyager.db</code>).</p>
+
+          <div class="callout callout-ok" style="margin:0.75rem 0;">
+            <span class="callout-icon">✓</span>
+            <span class="callout-body">Tables created: <code>users</code>, <code>sections</code>, <code>bookmarks</code>, <code>quiz_scores</code>, <code>solver_history</code>. Foreign keys cascade deletes from <code>users</code>.</span>
+          </div>
+
+          <h3 id="db-supabase" style="font-size:14px; font-weight:600; margin-top:1.25rem; margin-bottom:6px; color:var(--text);">Supabase (optional)</h3>
+          <p>The schema is <strong>not</strong> applied automatically for Supabase. Run it once in the Supabase SQL Editor before starting the backend:</p>
+
+          <div class="code-block">
+            <div class="code-label">Supabase → SQL Editor → New query</div>
+            <pre>-- paste the contents of backend/supabase_schema.sql and run it</pre>
+          </div>
+
+          <p>The schema creates the same five tables with <code>bigint</code> identity PKs, adds indexes on <code>user_id</code> columns, and disables RLS on all app-owned tables (the backend uses its own JWT and writes with a service-role key, not Supabase Auth).</p>
+
+          <div class="callout callout-warn" style="margin-top:0.75rem;">
+            <span class="callout-icon">⚠</span>
+            <span class="callout-body">Always use <code>SUPABASE_SERVICE_ROLE_KEY</code> — not the anon/publishable key — or Supabase will block backend writes with a 403.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Run -->
+      <section class="section" id="run">
+        <div class="section-header">
+          <div class="step-num">6</div>
+          <h2>Start the server</h2>
+        </div>
+        <div class="section-body">
+          <div class="code-block">
+            <div class="code-label">development (hot reload)</div>
+            <pre>uvicorn main:app --reload --port 8002</pre>
+          </div>
+          <p>The server starts at <code>http://127.0.0.1:8002</code>. The <code>--reload</code> flag restarts on file changes.</p>
+          <div class="callout callout-info" style="margin-top:0.75rem;">
+            <span class="callout-icon">ℹ</span>
+            <span class="callout-body">SQLite uses WAL mode and is not safe for multiple concurrent worker processes. Run a single worker locally.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Verify -->
+      <section class="section" id="verify">
+        <div class="section-header">
+          <div class="step-num">7</div>
+          <h2>Verify the installation</h2>
+        </div>
+        <div class="section-body">
+          <p>Check the health endpoint:</p>
+          <div class="code-block">
+            <div class="code-label">terminal</div>
+            <pre>curl http://127.0.0.1:8002/api/health</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-label">expected response</div>
+            <pre>{"status": "ok"}</pre>
+          </div>
+
+          <p>Run a full signup + protected route check:</p>
+          <div class="mac">
+            <div class="code-block">
+              <div class="code-label">bash — signup</div>
+              <pre>TOKEN=$(curl -s -X POST http://127.0.0.1:8002/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"testpass1"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+echo "Token: $TOKEN"</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label">bash — fetch profile</div>
+              <pre>curl http://127.0.0.1:8002/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"</pre>
+            </div>
+          </div>
+          <div class="win">
+            <div class="code-block">
+              <div class="code-label">PowerShell — signup</div>
+              <pre>$resp = Invoke-RestMethod -Method POST `
+  -Uri "http://127.0.0.1:8002/api/auth/signup" `
+  -ContentType "application/json" `
+  -Body '{"username":"testuser","password":"testpass1"}'
+$token = $resp.access_token</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-label">PowerShell — fetch profile</div>
+              <pre>Invoke-RestMethod -Uri "http://127.0.0.1:8002/api/auth/me" `
+  -Headers @{ Authorization = "Bearer $token" }</pre>
+            </div>
+          </div>
+
+          <p>You can also inspect the SQLite schema at any time:</p>
+          <div class="code-block">
+            <div class="code-label">terminal</div>
+            <pre>sqlite3 calcvoyager.db .schema</pre>
+          </div>
+
+          <p>Interactive API docs are served at <code>http://127.0.0.1:8002/docs</code> (custom HTML maintained in <code>main.py</code> — not Swagger).</p>
+        </div>
+      </section>
+
+      <!-- API overview -->
+      <section class="section" id="routes">
+        <div class="section-header">
+          <div class="step-num" style="background:var(--gray-50); color:var(--gray-800);">∑</div>
+          <h2>API overview</h2>
+          <span class="badge badge-amber">port 8002</span>
+        </div>
+        <div class="section-body">
+          <div class="route-list">
+            <div class="route-row"><span class="method method-get">GET</span><span class="route-path">/api/health</span><span class="route-desc">Health check</span></div>
+            <div class="route-row"><span class="method method-post">POST</span><span class="route-path">/api/auth/signup</span><span class="route-desc">Create account, returns JWT</span></div>
+            <div class="route-row"><span class="method method-post">POST</span><span class="route-path">/api/auth/login</span><span class="route-desc">Authenticate, returns JWT</span></div>
+            <div class="route-row"><span class="method method-get">GET</span><span class="route-path">/api/auth/me</span><span class="route-desc">Current user profile</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-get">GET</span><span class="route-path">/api/progress/</span><span class="route-desc">Full learning snapshot</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-post">POST</span><span class="route-path">/api/progress/section/complete</span><span class="route-desc">Mark section complete</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-delete">DEL</span><span class="route-path">/api/progress/section/{id}</span><span class="route-desc">Remove completed section</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-get">GET</span><span class="route-path">/api/bookmarks/</span><span class="route-desc">List bookmarks</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-post">POST</span><span class="route-path">/api/bookmarks/</span><span class="route-desc">Add bookmark</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-delete">DEL</span><span class="route-path">/api/bookmarks/{id}</span><span class="route-desc">Remove bookmark</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-get">GET</span><span class="route-path">/api/quiz/</span><span class="route-desc">Quiz scores (best per quiz)</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-post">POST</span><span class="route-path">/api/quiz/</span><span class="route-desc">Save quiz score</span><span class="route-auth">auth</span></div>
+            <div class="route-row"><span class="method method-post">POST</span><span class="route-path">/api/solver/log</span><span class="route-desc">Log solver use (auth optional)</span></div>
+            <div class="route-row"><span class="method method-get">GET</span><span class="route-path">/api/solver/history</span><span class="route-desc">Last 50 solver entries</span><span class="route-auth">auth</span></div>
+          </div>
+          <p style="margin-top:0.85rem;">All protected routes require <code>Authorization: Bearer &lt;token&gt;</code>. Errors return <code>{"detail": "..."}</code>.</p>
+        </div>
+      </section>
+
+      <!-- Production -->
+      <section class="section" id="deploy">
+        <div class="section-header">
+          <div class="step-num" style="background:var(--teal-50); color:var(--teal-800);">↑</div>
+          <h2>Production notes</h2>
+        </div>
+        <div class="section-body">
+          <div class="code-block">
+            <div class="code-label">production start (no reload)</div>
+            <pre>uvicorn main:app --host 0.0.0.0 --port 8002</pre>
+          </div>
+          <table>
+            <thead><tr><th>Requirement</th><th>Detail</th></tr></thead>
+            <tbody>
+              <tr><td><code>SECRET_KEY</code></td><td>Use a long, randomly-generated string. Never use the placeholder default.</td></tr>
+              <tr><td><code>ALLOWED_ORIGINS</code></td><td>Narrow to your actual frontend domain only.</td></tr>
+              <tr><td>Database</td><td>SQLite on a persistent volume, or switch to Supabase for multi-instance setups.</td></tr>
+              <tr><td>HTTPS</td><td>Terminate TLS at a reverse proxy (nginx, Caddy, etc.). Never expose the raw Uvicorn port.</td></tr>
+              <tr><td>Secrets</td><td>Never commit <code>.env</code>, <code>calcvoyager.db</code>, or any key file.</td></tr>
+              <tr><td>Rate limiting</td><td>Add rate limiting in front of <code>/api/auth/signup</code> and <code>/api/auth/login</code> before public launch.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section class="section" id="trouble">
+        <div class="section-header">
+          <div class="step-num" style="background:var(--coral-50); color:var(--coral-600);">?</div>
+          <h2>Troubleshooting</h2>
+        </div>
+        <div class="section-body">
+          <div class="trouble-item">
+            <div class="trouble-symptom">401 Not authenticated</div>
+            <div class="trouble-cause">Missing or invalid bearer token.</div>
+            <div class="trouble-fix">→ Log in or sign up to get a token. Pass it as <code>Authorization: Bearer &lt;token&gt;</code>.</div>
+          </div>
+          <div class="trouble-item">
+            <div class="trouble-symptom">CORS failure in the browser</div>
+            <div class="trouble-cause">Frontend origin not in <code>ALLOWED_ORIGINS</code>.</div>
+            <div class="trouble-fix">→ Add the exact origin (including port) to <code>ALLOWED_ORIGINS</code> in <code>.env</code> and restart.</div>
+          </div>
+          <div class="trouble-item">
+            <div class="trouble-symptom">500 — Supabase schema cache error</div>
+            <div class="trouble-cause">Tables haven't been created in Supabase yet.</div>
+            <div class="trouble-fix">→ Run <code>supabase_schema.sql</code> in the Supabase SQL Editor, then restart the backend.</div>
+          </div>
+          <div class="trouble-item">
+            <div class="trouble-symptom">500 — row-level security / 42501</div>
+            <div class="trouble-cause">Using the anon/publishable key instead of the service-role key, or RLS is re-enabled.</div>
+            <div class="trouble-fix">→ Use <code>SUPABASE_SERVICE_ROLE_KEY</code>. Re-run the schema SQL to reset RLS settings.</div>
+          </div>
+          <div class="trouble-item">
+            <div class="trouble-symptom">SQLite database locked</div>
+            <div class="trouble-cause">Multiple Uvicorn workers or processes sharing the same <code>.db</code> file.</div>
+            <div class="trouble-fix">→ Run a single worker locally. For multi-process production use Supabase.</div>
+          </div>
+          <div class="trouble-item">
+            <div class="trouble-symptom">Password always rejected after a user update</div>
+            <div class="trouble-cause">Wrong <code>DB_PATH</code>, or the <code>hashed_pw</code> column was modified directly.</div>
+            <div class="trouble-fix">→ Confirm <code>DB_PATH</code> points to the right file. Recreate the test user via <code>/api/auth/signup</code>.</div>
+          </div>
+          <div class="trouble-item">
+            <div class="trouble-symptom">Syntax check before a PR</div>
+            <div class="trouble-cause">Catching import or syntax errors early.</div>
+            <div class="trouble-fix"><code>python -m py_compile main.py auth_utils.py db.py storage.py routers/*.py</code></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+function setOS(os) {
+  document.body.classList.toggle('windows', os === 'win');
+  document.getElementById('btn-mac').style.background = os === 'mac' ? 'var(--purple-50)' : 'var(--bg)';
+  document.getElementById('btn-mac').style.color = os === 'mac' ? 'var(--purple-800)' : 'var(--text-2)';
+  document.getElementById('btn-win').style.background = os === 'win' ? 'var(--purple-50)' : 'var(--bg)';
+  document.getElementById('btn-win').style.color = os === 'win' ? 'var(--purple-800)' : 'var(--text-2)';
+}
+document.querySelectorAll('.toc a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+</body>
+</html>
