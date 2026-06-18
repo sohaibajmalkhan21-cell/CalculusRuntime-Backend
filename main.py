@@ -1,3 +1,5 @@
+# main.py - Complete file with chat router added
+
 """
 CalcVoyager Backend — Starlette + SQLite/Supabase
 Works on Python 3.10+ including 3.14.
@@ -30,6 +32,7 @@ from routers.progress import routes as progress_routes
 from routers.bookmarks import routes as bookmark_routes
 from routers.quiz import routes as quiz_routes
 from routers.solver_proxy import routes as solver_routes
+from routers.chat import routes as chat_routes  # ADD THIS IMPORT
 
 # ── Route handlers ────────────────────────────────────────────────────────────
 
@@ -48,6 +51,7 @@ async def root(request: Request):
                 "bookmarks": "/api/bookmarks  (GET /  POST /  DELETE /{id})",
                 "quiz": "/api/quiz  (GET /  POST /)",
                 "solver": "/api/solver  (POST /log  GET /history)",
+                "chat": "/api/chat  (POST /sessions  GET /sessions  POST /messages  GET /history/{id})",  # ADD THIS
             },
         }
     )
@@ -82,6 +86,7 @@ _DOCS_HTML = """<!DOCTYPE html>
     min-width:52px;text-align:center;flex-shrink:0;margin-top:.1rem}
   .get {background:#1a3a2a;color:#4ade80}
   .post{background:#1a2a3a;color:#60a5fa}
+  .put {background:#3a3a1a;color:#fbbf24}
   .del {background:#3a1a1a;color:#f87171}
   .path{font-family:monospace;font-size:.9rem;color:#e8e6e1}
   .desc{font-size:.82rem;color:#9a917f;margin-top:.15rem}
@@ -112,6 +117,28 @@ _DOCS_HTML = """<!DOCTYPE html>
   <div class="route"><span class="method get">GET</span>
     <div><div class="path">/api/auth/me</div>
     <div class="desc">🔒 Current user profile</div></div></div>
+</div>
+
+<div class="group">
+  <div class="group-title">Chat &nbsp;/api/chat</div>
+  <div class="route"><span class="method post">POST</span>
+    <div><div class="path">/api/chat/sessions</div>
+    <div class="desc">🔒 Create a new chat session. Body: <code>{"title":"My Chat"}</code></div></div></div>
+  <div class="route"><span class="method get">GET</span>
+    <div><div class="path">/api/chat/sessions</div>
+    <div class="desc">🔒 List all chat sessions</div></div></div>
+  <div class="route"><span class="method put">PUT</span>
+    <div><div class="path">/api/chat/sessions/{session_id}</div>
+    <div class="desc">🔒 Update session title. Body: <code>{"title":"New Title"}</code></div></div></div>
+  <div class="route"><span class="method del">DEL</span>
+    <div><div class="path">/api/chat/sessions/{session_id}</div>
+    <div class="desc">🔒 Delete a session</div></div></div>
+  <div class="route"><span class="method post">POST</span>
+    <div><div class="path">/api/chat/messages</div>
+    <div class="desc">🔒 Save a message. Body: <code>{"session_id","message_type","content","metadata?"}</code></div></div></div>
+  <div class="route"><span class="method get">GET</span>
+    <div><div class="path">/api/chat/history/{session_id}</div>
+    <div class="desc">🔒 Get conversation history with pagination (limit/offset)</div></div></div>
 </div>
 
 <div class="group">
@@ -209,6 +236,7 @@ app = Starlette(
         Mount("/api/bookmarks", routes=bookmark_routes),
         Mount("/api/quiz", routes=quiz_routes),
         Mount("/api/solver", routes=solver_routes),
+        Mount("/api/chat", routes=chat_routes),  # ADD THIS LINE
     ],
     middleware=[
         Middleware(
